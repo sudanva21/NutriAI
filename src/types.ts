@@ -38,8 +38,13 @@ export interface Meal {
   time?: string;
   type: MealType;
   eaten: boolean;
-  ingredients?: string[];
+  image?: string;
+  description?: string;
+  ingredients?: { name: string; amount: string }[];
+  directions?: string[];
   prepTime?: number;
+  cookTime?: number;
+  servings?: number;
 }
 
 export interface DayPlan {

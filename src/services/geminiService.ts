@@ -1,10 +1,23 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { UserProfile, Goal, DietType, ActivityLevel, MealType } from "../types";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+const apiKey = process.env.GEMINI_API_KEY;
+if (!apiKey) {
+  console.warn("GEMINI_API_KEY is not defined. AI features will not work.");
+}
+
+const genAI = new GoogleGenerativeAI(apiKey || "");
+
+// Helper to get model with v1 stable version
+const getModel = (modelName: string = "gemini-1.5-flash") => {
+  return genAI.getGenerativeModel(
+    { model: modelName },
+    { apiVersion: "v1" }
+  );
+};
 
 export async function generateMealPlan(profile: UserProfile): Promise<any> {
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const model = getModel();
 
   const prompt = `
     SYSTEM: You are an expert nutritionist and meal planner.
@@ -41,7 +54,13 @@ export async function generateMealPlan(profile: UserProfile): Promise<any> {
   `;
 
   try {
-    const result = await model.generateContent(prompt);
+    const result = await model.generateContent({
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig: {
+        maxOutputTokens: 1000,
+        temperature: 0.7,
+      }
+    });
     const text = result.response.text();
     const cleanJson = text.replace(/```json|```/g, "").trim();
     return JSON.parse(cleanJson);
@@ -51,8 +70,56 @@ export async function generateMealPlan(profile: UserProfile): Promise<any> {
   }
 }
 
+export async function analyzeFoodImage(base64Image: string): Promise<any> {
+  const model = getModel();
+
+  const prompt = `
+    Identify the food in this image and provide estimated nutritional information.
+    RESPOND ONLY WITH VALID JSON.
+    Format:
+    {
+      "name": "Identified Food Name",
+      "calories": number,
+      "protein": number,
+      "carbs": number,
+      "fat": number,
+      "confidence": number (0-1),
+      "description": "Short description"
+    }
+  `;
+
+  try {
+    const result = await model.generateContent({
+      contents: [
+        {
+          role: "user",
+          parts: [
+            { text: prompt },
+            {
+              inlineData: {
+                mimeType: "image/jpeg",
+                data: base64Image.split(",")[1] || base64Image
+              }
+            }
+          ]
+        }
+      ],
+      generationConfig: {
+        maxOutputTokens: 500,
+      }
+    });
+
+    const text = result.response.text();
+    const cleanJson = text.replace(/```json|```/g, "").trim();
+    return JSON.parse(cleanJson);
+  } catch (error) {
+    console.error("Vision Analysis Error:", error);
+    return null;
+  }
+}
+
 export async function generateHealthInsights(profile: UserProfile, logs: any[]): Promise<string[]> {
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const model = getModel();
 
   const prompt = `
     SYSTEM: You are a nutrition coach.
@@ -62,7 +129,12 @@ export async function generateHealthInsights(profile: UserProfile, logs: any[]):
   `;
 
   try {
-    const result = await model.generateContent(prompt);
+    const result = await model.generateContent({
+      contents: [{ role: "user", parts: [{ text: prompt }] }],
+      generationConfig: {
+        maxOutputTokens: 200,
+      }
+    });
     const text = result.response.text();
     const cleanJson = text.replace(/```json|```/g, "").trim();
     return JSON.parse(cleanJson);
@@ -70,3 +142,4 @@ export async function generateHealthInsights(profile: UserProfile, logs: any[]):
     return ["Stay hydrated today!", "Focus on protein intake.", "Try to hit your step goal."];
   }
 }
+

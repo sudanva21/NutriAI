@@ -24,9 +24,11 @@ import Dashboard from "./components/Dashboard";
 import Analytics from "./components/Analytics";
 import Planner from "./components/Planner";
 import Profile from "./components/Profile";
+import Scanner from "./components/Scanner";
 
 export default function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [showScanner, setShowScanner] = useState(false);
   const [profile, setProfile] = useState<UserProfile>(() => {
     const saved = localStorage.getItem("nutriai_profile");
     return saved ? JSON.parse(saved) : INITIAL_PROFILE;
@@ -43,6 +45,19 @@ export default function App() {
     const timer = setTimeout(() => setLoading(false), 2000);
     return () => clearTimeout(timer);
   }, []);
+
+  const handleScannerResult = (result: any) => {
+    console.log("Scanner Result:", result);
+    // In a real app, we would add this to a meal log. 
+    // For now, let's just close the scanner and maybe update XP or something to show feedback.
+    setShowScanner(false);
+    setProfile(prev => ({
+      ...prev,
+      xp: prev.xp + 50,
+      level: Math.floor((prev.xp + 50) / 500) + 1
+    }));
+    alert(`Identified: ${result.name}\nCalories: ${result.calories}kcal\nProtein: ${result.protein}g`);
+  };
 
   if (loading) {
     return (
@@ -69,6 +84,15 @@ export default function App() {
 
   return (
     <div className="flex flex-col min-h-screen pb-24 md:pb-0 md:pl-20 bg-navy">
+      <AnimatePresence>
+        {showScanner && (
+          <Scanner 
+            onClose={() => setShowScanner(false)} 
+            onResult={handleScannerResult} 
+          />
+        )}
+      </AnimatePresence>
+
       {/* Top Bar */}
       <header className="p-6 flex items-center justify-between sticky top-0 bg-white/80 backdrop-blur-md border-b border-slate-200 z-30">
         <div className="flex items-center gap-3">
@@ -116,8 +140,11 @@ export default function App() {
           onClick={() => setActiveTab("analytics")} 
         />
         
-        <button className="w-14 h-14 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/30 -mt-8 md:mt-0 transition-all hover:scale-110 active:scale-95 group">
-          <Plus className="w-7 h-7 text-white" />
+        <button 
+          onClick={() => setShowScanner(true)}
+          className="w-14 h-14 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/30 -mt-8 md:mt-0 transition-all hover:scale-110 active:scale-95 group"
+        >
+          <Camera className="w-7 h-7 text-white" />
         </button>
 
         <NavButton 
@@ -134,6 +161,7 @@ export default function App() {
         />
       </nav>
     </div>
+
   );
 }
 

@@ -1,0 +1,13 @@
+{
+  "name": "Remix: NutriAI — Diet \u0026 Meal Planner",
+  "description": "AI-powered personalized nutrition, meal planning, and food tracking with gamified health goals.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": [
+    "AI Meal Planning",
+    "Calorie Tracking",
+    "Visual Analytics",
+    "Gamification"
+  ]
+}
